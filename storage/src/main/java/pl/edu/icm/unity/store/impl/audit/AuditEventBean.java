@@ -7,6 +7,7 @@ package pl.edu.icm.unity.store.impl.audit;
 import pl.edu.icm.unity.store.rdbms.BaseBean;
 
 import java.util.Date;
+import java.util.List;
 
 
 /**
@@ -24,6 +25,7 @@ public class AuditEventBean extends BaseBean
 	private String initiatorName;
 	private String initiatorEmail;
 	private String action;
+	private List<String> tags;
 
 	public AuditEventBean(final String name, final byte[] contents, final String type, final Date timestamp, final Long subjectId, final Long initiatorId, final String action) {
 		super(name, contents);
@@ -107,5 +109,13 @@ public class AuditEventBean extends BaseBean
 
 	public void setAction(final String action) {
 		this.action = action;
+	}
+
+	public List<String> getTags() {
+		return tags;
+	}
+
+	public void setTags(final List<String> tags) {
+		this.tags = tags;
 	}
 }

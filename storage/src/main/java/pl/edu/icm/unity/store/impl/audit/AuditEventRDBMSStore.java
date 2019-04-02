@@ -11,12 +11,14 @@ import pl.edu.icm.unity.store.rdbms.GenericRDBMSCRUD;
 import pl.edu.icm.unity.store.rdbms.tx.SQLTransactionTL;
 import pl.edu.icm.unity.types.basic.AuditEvent;
 
-import static java.util.Objects.nonNull;
+import java.util.ArrayList;
+import java.util.List;
 
+import static java.util.Objects.nonNull;
 
 /**
  * RDBMS storage of {@link AuditEvent}
- * @author K. Benedyczak
+ * @author R. Ledzinski
  */
 @Repository(AuditEventRDBMSStore.BEAN)
 public class AuditEventRDBMSStore extends GenericRDBMSCRUD<AuditEvent, AuditEventBean>
@@ -33,6 +35,7 @@ public class AuditEventRDBMSStore extends GenericRDBMSCRUD<AuditEvent, AuditEven
 	@Override
 	public long create(AuditEvent obj)
 	{
+		obj.assertValid();
 		if (nonNull(obj.getSubject()) && !isAuditEntityExists(obj.getSubject().getEntityId())) {
 			createAuditEntity(new AuditEntityBean(obj.getSubject().getEntityId(),
 					obj.getSubject().getName(),
@@ -45,11 +48,17 @@ public class AuditEventRDBMSStore extends GenericRDBMSCRUD<AuditEvent, AuditEven
 					obj.getInitiator().getEmail()));
 		}
 
-		return super.create(obj);
+		long id = super.create(obj);
+		if (obj.getTags() != null && obj.getTags().size() > 0) {
+			insertTags(id, obj.getTags());
+		}
+
+		return id;
 	}
 
 	@Override
 	public void updateByKey(final long key, final AuditEvent obj) {
+		obj.assertValid();
 		if (nonNull(obj.getSubject()) && !isAuditEntityExists(obj.getSubject().getEntityId())) {
 			createAuditEntity(new AuditEntityBean(obj.getSubject().getEntityId(),
 					obj.getSubject().getName(),
@@ -65,16 +74,49 @@ public class AuditEventRDBMSStore extends GenericRDBMSCRUD<AuditEvent, AuditEven
 		super.updateByKey(key, obj);
 	}
 
-	boolean isAuditEntityExists(long entityId)
+	@Override
+	public AuditEvent getByKey(final long id) {
+		AuditEvent event = super.getByKey(id);
+		event.setTags(getTags(id));
+		return event;
+	}
+
+	@Override
+	public List<AuditEvent> getAll() {
+		AuditEventMapper mapper = SQLTransactionTL.getSql().getMapper(AuditEventMapper.class);
+		List<AuditEventBean> allInDB = mapper.getAll();
+		List<AuditEvent> ret = new ArrayList<>(allInDB.size());
+		for(AuditEventBean bean : allInDB)
+		{
+			AuditEvent event = jsonSerializer.fromDB(bean);
+			event.setTags(getTags(bean.getId()));
+			ret.add(event);
+		}
+		return ret;
+	}
+
+	private boolean isAuditEntityExists(long entityId)
 	{
 		AuditEventMapper mapper = SQLTransactionTL.getSql().getMapper(AuditEventMapper.class);
 		return mapper.auditEntityExists(entityId);
 	}
 
-	long createAuditEntity(AuditEntityBean entityBean)
+	private long createAuditEntity(AuditEntityBean entityBean)
 	{
 		AuditEventMapper mapper = SQLTransactionTL.getSql().getMapper(AuditEventMapper.class);
 		mapper.createAuditEntity(entityBean);
 		return entityBean.getEntityId();
+	}
+
+	private List<String> getTags(long eventId)
+	{
+		AuditEventMapper mapper = SQLTransactionTL.getSql().getMapper(AuditEventMapper.class);
+		return mapper.getTags(eventId);
+	}
+
+	private void insertTags(long eventId, List<String> tagList)
+	{
+		AuditEventMapper mapper = SQLTransactionTL.getSql().getMapper(AuditEventMapper.class);
+		mapper.insertTags(eventId, tagList);
 	}
 }

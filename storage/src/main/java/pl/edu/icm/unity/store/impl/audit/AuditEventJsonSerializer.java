@@ -10,6 +10,9 @@ import pl.edu.icm.unity.store.rdbms.RDBMSObjectSerializer;
 import pl.edu.icm.unity.types.basic.AuditEvent;
 
 import static java.util.Objects.isNull;
+import pl.edu.icm.unity.types.basic.AuditEvent.AuditEntity;
+import pl.edu.icm.unity.types.basic.AuditEvent.EventType;
+import pl.edu.icm.unity.types.basic.AuditEvent.EventAction;
 
 /**
  * Serializes {@link AuditEvent} to/from DB form.
@@ -24,11 +27,11 @@ public class AuditEventJsonSerializer implements RDBMSObjectSerializer<AuditEven
 		AuditEventBean bean = new AuditEventBean(
 				object.getName(),
 				JsonUtil.serialize2Bytes(object.getJsonDetails()),
-				object.getType(),
+				object.getType().toString(),
 				object.getTimestamp(),
 				isNull(object.getSubject()) ? null: object.getSubject().getEntityId(),
 				isNull(object.getInitiator()) ? null: object.getInitiator().getEntityId(),
-				object.getAction());
+				object.getAction().toString());
 		return bean;
 	}
 
@@ -36,12 +39,13 @@ public class AuditEventJsonSerializer implements RDBMSObjectSerializer<AuditEven
 	public AuditEvent fromDB(AuditEventBean bean)
 	{
 		AuditEvent event = new AuditEvent(bean.getName(),
-				bean.getType(),
+				EventType.valueOf(bean.getType()),
 				bean.getTimestamp(),
-				bean.getAction(),
+				EventAction.valueOf(bean.getAction()),
 				JsonUtil.parse(bean.getContents()),
-				isNull(bean.getSubjectId()) ? null : new AuditEvent.AuditEntity(bean.getSubjectId(), bean.getSubjectName(), bean.getSubjectEmail()),
-				isNull(bean.getInitiatorId()) ? null : new AuditEvent.AuditEntity(bean.getInitiatorId(), bean.getInitiatorName(), bean.getInitiatorEmail())
+				isNull(bean.getSubjectId()) ? null : new AuditEntity(bean.getSubjectId(), bean.getSubjectName(), bean.getSubjectEmail()),
+				isNull(bean.getInitiatorId()) ? null : new AuditEntity(bean.getInitiatorId(), bean.getInitiatorName(), bean.getInitiatorEmail()),
+				bean.getTags()
 				);
 		return event;
 	}

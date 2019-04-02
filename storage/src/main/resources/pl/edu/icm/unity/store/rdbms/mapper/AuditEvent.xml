@@ -70,4 +70,15 @@
 		INSERT INTO AUDIT_ENTITIES (ENTITY_ID, NAME, EMAIL)
 			VALUES (#{entityId}, #{name}, #{email})
 	</insert>
+
+	<select id="getTags" parameterType="long" resultType="string">
+		SELECT TAG FROM AUDIT_EVENTS_TAGS WHERE EVENT_ID=#{eventId}
+	</select>
+
+	<insert id="insertTags">
+		INSERT INTO AUDIT_EVENTS_TAGS (EVENT_ID, TAG) VALUES
+		<foreach collection="tagList" item="item" index="index" separator=",">
+			 (#{eventId},#{item})
+		</foreach>
+	</insert>
 </mapper>
